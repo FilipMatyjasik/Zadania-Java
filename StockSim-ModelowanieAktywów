@@ -1,0 +1,115 @@
+import java.util.Objects;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
+class Stock {
+    private final String symbol;
+    private final String name;
+    private double price;
+
+    public Stock(String symbol, String name, double price) {
+        this.symbol = symbol;
+        this.name = name;
+        this.price = price;
+    }
+
+    public String getSymbol() {
+        return symbol;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public double getPrice() {
+        return price;
+    }
+
+    public void setPrice(double price) {
+        this.price = price;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Stock)) return false;
+        Stock stock = (Stock) o;
+        return Objects.equals(symbol, stock.symbol);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(symbol);
+    }
+}
+class Portfolio {
+    private double cash;
+    private final Map<Stock, Integer> stocksInPortfolio;
+
+    public Portfolio(double initialCash) {
+        this.cash = initialCash;
+        this.stocksInPortfolio = new HashMap<>();
+    }
+
+    public void addStock(Stock stock, int quantity) {
+        stocksInPortfolio.merge(stock, quantity, Integer::sum);
+    }
+
+    public double getCash() {
+        return cash;
+    }
+
+    public Map<Stock, Integer> getStocksInPortfolio() {
+        return Collections.unmodifiableMap(stocksInPortfolio);
+    }
+
+    public double calculateStockValue() {
+        double total = 0.0;
+        for (Map.Entry<Stock, Integer> entry : stocksInPortfolio.entrySet()) {
+            total += entry.getKey().getPrice() * entry.getValue();
+        }
+        return total;
+    }
+
+    public double calculateTotalValue() {
+        return getCash() + calculateStockValue();
+    }
+}
+class StockMarketSimStage1 {
+    public static void main(String[] args) {
+        // Tworzenie akcji (Stock)
+        Stock cdr = new Stock("CDR", "CD Projekt", 300.0);
+        Stock pko = new Stock("PKO", "PKO BP", 40.0);
+        Stock kgh = new Stock("KGH", "KGHM", 150.0);
+
+        // Tworzenie portfela
+        Portfolio portfolio = new Portfolio(10000.0);
+
+        // Dodanie akcji do portfela
+        portfolio.addStock(cdr, 10);
+        portfolio.addStock(pko, 50);
+
+        // Wyświetlenie stanu portfela
+        System.out.println("\n--- Stan Portfela ---");
+        System.out.printf("Gotówka: %.2f PLN%n", portfolio.getCash());
+        System.out.println("Posiadane akcje:");
+
+        for (Map.Entry<Stock, Integer> entry : portfolio.getStocksInPortfolio().entrySet()) {
+            displayStockInfo(entry.getKey(), entry.getValue());
+        }
+
+        double stockValue = portfolio.calculateStockValue();
+        double totalValue = portfolio.calculateTotalValue();
+
+        System.out.printf("Wartość akcji: %.2f PLN%n", stockValue);
+        System.out.printf("Wartość całkowita portfela: %.2f PLN%n", totalValue);
+    }
+
+    // Pomocnicza metoda do wyświetlania akcji
+    private static void displayStockInfo(Stock stock, int quantity) {
+        double value = stock.getPrice() * quantity;
+        System.out.printf(" - %s (%s): %d szt. @ %.2f PLN/szt. = %.2f PLN%n",
+                stock.getSymbol(), stock.getName(), quantity, stock.getPrice(), value);
+    }
+}
