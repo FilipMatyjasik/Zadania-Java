@@ -1,0 +1,175 @@
+import java.util.*;
+
+// Abstrakcyjna klasa bazowa dla aktywów
+abstract class Asset {
+    protected String symbol;
+    protected String name;
+    protected double currentPrice;
+
+    public Asset(String symbol, String name, double initialPrice) {
+        if (symbol == null || symbol.isEmpty() || initialPrice < 0) {
+            throw new IllegalArgumentException("Symbol cannot be null or empty and price cannot be negative.");
+        }
+        this.symbol = symbol;
+        this.name = name;
+        this.currentPrice = initialPrice;
+    }
+
+    public String getSymbol() {
+        return symbol;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public double getCurrentPrice() {
+        return currentPrice;
+    }
+
+    public abstract void updatePrice();
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Asset asset = (Asset) o;
+        return symbol.equals(asset.symbol);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(symbol);
+    }
+}
+
+// Klasa reprezentująca akcje
+class Stock extends Asset {
+
+    public Stock(String symbol, String name, double initialPrice) {
+        super(symbol, name, initialPrice);
+    }
+
+    @Override
+    public void updatePrice() {
+        this.currentPrice *= (1.0 + (Math.random() - 0.5) * 0.1); // Losowa zmiana o +/- 5%
+        if (this.currentPrice < 0) {
+            this.currentPrice = 0; // Zapewnienie, że cena nie spadnie poniżej 0
+        }
+    }
+}
+
+// Klasa reprezentująca obligacje
+class Bond extends Asset {
+    private double interestRate;
+
+    public Bond(String symbol, String name, double initialPrice, double interestRate) {
+        super(symbol, name, initialPrice);
+        if (interestRate < 0) {
+            throw new IllegalArgumentException("Interest rate cannot be negative.");
+        }
+        this.interestRate = interestRate;
+    }
+
+    public double getInterestRate() {
+        return interestRate;
+    }
+
+    @Override
+    public void updatePrice() {
+        this.currentPrice += this.currentPrice * interestRate; // Rośnie zgodnie z oprocentowaniem
+    }
+}
+
+// Klasa przechowująca pozycję w portfelu
+record PortfolioPosition(Asset asset, int quantity) {}
+
+// Klasa reprezentująca portfel inwestycyjny
+class Portfolio {
+    private double cash;
+    private Map<String, PortfolioPosition> positions;
+
+    public Portfolio(double initialCash) {
+        if (initialCash < 0) {
+            throw new IllegalArgumentException("Cash cannot be negative.");
+        }
+        this.cash = initialCash;
+        this.positions = new HashMap<>();
+    }
+
+    public double getCash() {
+        return cash;
+    }
+
+    public void addAsset(Asset asset, int quantity) {
+        if (asset == null || quantity <= 0) {
+            throw new IllegalArgumentException("Asset cannot be null and quantity must be positive.");
+        }
+
+        String symbol = asset.getSymbol();
+        if (positions.containsKey(symbol)) {
+            PortfolioPosition existingPosition = positions.get(symbol);
+            PortfolioPosition updatedPosition = new PortfolioPosition(asset, existingPosition.quantity() + quantity);
+            positions.put(symbol, updatedPosition);
+        } else {
+            positions.put(symbol, new PortfolioPosition(asset, quantity));
+        }
+    }
+
+    public Map<String, PortfolioPosition> getPositions() {
+        return Collections.unmodifiableMap(positions);
+    }
+
+    public double calculateAssetsValue() {
+        double totalValue = 0.0;
+        for (PortfolioPosition pos : positions.values()) {
+            totalValue += pos.asset().getCurrentPrice() * pos.quantity();
+        }
+        return totalValue;
+    }
+
+    public double calculateTotalValue() {
+        return calculateAssetsValue() + cash;
+    }
+}
+
+public class StockMarketSimStage2 {
+    public static void main(String[] args) {
+        // Tworzenie aktywów
+        List<Asset> marketAssets = new ArrayList<>();
+        marketAssets.add(new Stock("CDR", "CD Projekt", 300.0));
+        marketAssets.add(new Stock("PKO", "PKO BP", 40.0));
+        marketAssets.add(new Bond("TBOND", "10 Year Government Bond", 1000.0, 0.02)); // 2% rocznie
+
+        // Tworzenie portfela
+        Portfolio portfolio = new Portfolio(10000.0);
+
+        // Dodawanie pozycji do portfela
+        portfolio.addAsset(marketAssets.get(0), 10); // 10 akcji CD Projekt
+        portfolio.addAsset(marketAssets.get(1), 50); // 50 akcji PKO
+        portfolio.addAsset(marketAssets.get(2), 5);  // 5 obligacji
+
+        // Symulacja zmian cen
+        for (int i = 0; i < 10; i++) {
+            System.out.println("Krok " + (i + 1));
+            for (Asset asset : marketAssets) {
+                asset.updatePrice();  // Aktualizowanie ceny każdego aktywa
+                System.out.println(asset.getName() + " (" + asset.getSymbol() + ") - Cena: " + asset.getCurrentPrice());
+            }
+
+            // Obliczanie wartości portfela
+            double totalValue = portfolio.calculateTotalValue();
+            System.out.println("Wartość portfela: " + totalValue);
+            System.out.println("---------------------------------");
+        }
+
+        // Finalny stan portfela
+        System.out.println("\nFinalny stan portfela:");
+        for (Map.Entry<String, PortfolioPosition> entry : portfolio.getPositions().entrySet()) {
+            PortfolioPosition position = entry.getValue();
+            System.out.println(position.asset().getName() + " (" + position.asset().getSymbol() + ") - " +
+                    position.quantity() + " szt. - Wartość: " +
+                    position.asset().getCurrentPrice() * position.quantity());
+        }
+    }
+}
