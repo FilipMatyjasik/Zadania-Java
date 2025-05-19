@@ -1,0 +1,356 @@
+import java.util.*;
+import java.text.DecimalFormat;
+
+/**
+ * Abstrakcyjna klasa bazowa dla aktywów finansowych
+ */
+abstract class Asset {
+    protected String symbol;
+    protected String name;
+    protected double currentPrice;
+
+    /**
+     * Konstruktor dla aktywów finansowych
+     * @param symbol unikatowy symbol aktywa
+     * @param name nazwa aktywa
+     * @param initialPrice cena początkowa aktywa
+     * @throws IllegalArgumentException gdy symbol jest pusty lub initialPrice jest ujemna
+     */
+    public Asset(String symbol, String name, double initialPrice) {
+        if (symbol == null || symbol.isEmpty() || initialPrice < 0) {
+            throw new IllegalArgumentException("Symbol cannot be null or empty and price cannot be negative.");
+        }
+        this.symbol = symbol;
+        this.name = name;
+        this.currentPrice = initialPrice;
+    }
+
+    /**
+     * Zwraca symbol aktywa
+     * @return symbol aktywa
+     */
+    public String getSymbol() {
+        return symbol;
+    }
+
+    /**
+     * Zwraca nazwę aktywa
+     * @return nazwa aktywa
+     */
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * Zwraca aktualną cenę aktywa
+     * @return aktualna cena aktywa
+     */
+    public double getCurrentPrice() {
+        return currentPrice;
+    }
+
+    /**
+     * Metoda abstrakcyjna do aktualizacji ceny aktywa
+     * Musi być zaimplementowana przez klasy potomne
+     */
+    public abstract void updatePrice();
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Asset asset = (Asset) o;
+        return symbol.equals(asset.symbol);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(symbol);
+    }
+
+    @Override
+    public String toString() {
+        return name + " (" + symbol + ") - Cena: " + currentPrice;
+    }
+}
+
+/**
+ * Klasa reprezentująca akcje
+ */
+class Stock extends Asset {
+
+    /**
+     * Konstruktor dla akcji
+     * @param symbol symbol akcji
+     * @param name nazwa firmy
+     * @param initialPrice cena początkowa akcji
+     */
+    public Stock(String symbol, String name, double initialPrice) {
+        super(symbol, name, initialPrice);
+    }
+
+    /**
+     * Aktualizuje cenę akcji o losową wartość +/- 5%
+     */
+    @Override
+    public void updatePrice() {
+        // Losowa zmiana w zakresie +/- 5%
+        double changePercent = (Math.random() - 0.5) * 0.1;
+        currentPrice *= (1.0 + changePercent);
+
+        // Zapobieganie ujemnym cenom
+        if (currentPrice < 0) {
+            currentPrice = 0;
+        }
+    }
+}
+
+/**
+ * Klasa reprezentująca obligacje
+ */
+class Bond extends Asset {
+    private double interestRate; // roczna stopa procentowa
+
+    /**
+     * Konstruktor dla obligacji
+     * @param symbol symbol obligacji
+     * @param name nazwa obligacji
+     * @param initialPrice cena początkowa obligacji
+     * @param interestRate roczna stopa procentowa (np. 0.05 dla 5%)
+     * @throws IllegalArgumentException gdy stopa procentowa jest ujemna
+     */
+    public Bond(String symbol, String name, double initialPrice, double interestRate) {
+        super(symbol, name, initialPrice);
+
+        if (interestRate < 0) {
+            throw new IllegalArgumentException("Interest rate cannot be negative");
+        }
+
+        this.interestRate = interestRate;
+    }
+
+    /**
+     * Zwraca stopę procentową
+     * @return stopa procentowa
+     */
+    public double getInterestRate() {
+        return interestRate;
+    }
+
+    /**
+     * Aktualizuje cenę obligacji zgodnie ze stopą procentową
+     * (dla uproszczenia zakładamy, że jeden krok to 1/365 roku)
+     */
+    @Override
+    public void updatePrice() {
+        // Dla uproszczenia przyjmujemy, że jeden krok to jeden dzień
+        double dailyInterest = interestRate / 365;
+        currentPrice *= (1.0 + dailyInterest);
+    }
+}
+
+/**
+ * Rekord reprezentujący pozycję w portfelu
+ * @param asset aktywo
+ * @param quantity ilość posiadanych sztuk
+ */
+record PortfolioPosition(Asset asset, int quantity) {}
+
+/**
+ * Klasa reprezentująca portfel inwestycyjny
+ */
+class Portfolio {
+    private double cash;
+    private Map<String, PortfolioPosition> positions;
+
+    /**
+     * Konstruktor portfela
+     * @param initialCash początkowa ilość gotówki
+     * @throws IllegalArgumentException gdy początkowa gotówka jest ujemna
+     */
+    public Portfolio(double initialCash) {
+        if (initialCash < 0) {
+            throw new IllegalArgumentException("Cash cannot be negative.");
+        }
+
+        this.cash = initialCash;
+        this.positions = new HashMap<>();
+    }
+
+    /**
+     * Zwraca ilość gotówki w portfelu
+     * @return ilość gotówki
+     */
+    public double getCash() {
+        return cash;
+    }
+
+    /**
+     * Dodaje aktywa do portfela
+     * @param asset aktywo do dodania
+     * @param quantity ilość sztuk do dodania
+     * @throws IllegalArgumentException gdy aktywo jest null, ilość <= 0 lub brak wystarczającej gotówki
+     */
+    public void addAsset(Asset asset, int quantity) {
+        if (asset == null || quantity <= 0) {
+            throw new IllegalArgumentException("Asset cannot be null and quantity must be positive.");
+        }
+
+        // Obliczamy koszt zakupu
+        double cost = asset.getCurrentPrice() * quantity;
+
+        // Sprawdzamy czy mamy wystarczająco gotówki
+        if (cost > cash) {
+            throw new IllegalArgumentException("Insufficient cash for purchase.\nNeeded: "
+                    + cost + "\nAvailable: " + cash);
+        }
+
+        // Odejmujemy koszt od gotówki
+        cash -= cost;
+
+        // Dodajemy lub aktualizujemy pozycję w portfelu
+        String symbol = asset.getSymbol();
+        if (positions.containsKey(symbol)) {
+            // Aktualizujemy istniejącą pozycję
+            PortfolioPosition existingPosition = positions.get(symbol);
+            PortfolioPosition updatedPosition = new PortfolioPosition(
+                    existingPosition.asset(),
+                    existingPosition.quantity() + quantity
+            );
+            positions.put(symbol, updatedPosition);
+        } else {
+            // Dodajemy nową pozycję
+            positions.put(symbol, new PortfolioPosition(asset, quantity));
+        }
+    }
+
+    /**
+     * Zwraca niemodyfikowalną mapę pozycji w portfelu
+     * @return mapa pozycji w portfelu
+     */
+    public Map<String, PortfolioPosition> getPositions() {
+        return Collections.unmodifiableMap(positions);
+    }
+
+    /**
+     * Oblicza wartość aktywów w portfelu (bez gotówki)
+     * @return wartość aktywów
+     */
+    public double calculateAssetsValue() {
+        double totalValue = 0.0;
+
+        for (PortfolioPosition position : positions.values()) {
+            totalValue += position.asset().getCurrentPrice() * position.quantity();
+        }
+
+        return totalValue;
+    }
+
+    /**
+     * Oblicza całkowitą wartość portfela (aktywa + gotówka)
+     * @return całkowita wartość portfela
+     */
+    public double calculateTotalValue() {
+        return calculateAssetsValue() + cash;
+    }
+
+    /**
+     * Wyświetla zawartość portfela
+     */
+    public void printPortfolio() {
+        DecimalFormat df = new DecimalFormat("#,##0.00");
+
+        System.out.println("\nPortfolio contains:");
+        System.out.println("-------------------");
+
+        for (PortfolioPosition position : positions.values()) {
+            Asset asset = position.asset();
+            int quantity = position.quantity();
+            double value = asset.getCurrentPrice() * quantity;
+
+            System.out.println(asset.getName() + " (" + asset.getSymbol() + "):");
+            System.out.println("  Quantity: " + quantity + " pcs.");
+            System.out.println("  Price: " + df.format(asset.getCurrentPrice()) + " PLN");
+            System.out.println("  Value: " + df.format(value) + " PLN");
+        }
+
+        System.out.println("\nCash: " + df.format(cash) + " PLN");
+        System.out.println("Asset value: " + df.format(calculateAssetsValue()) + " PLN");
+        System.out.println("Total value: " + df.format(calculateTotalValue()) + " PLN");
+        System.out.println("-------------------");
+    }
+}
+
+/**
+ * Główna klasa aplikacji symulująca rynek akcji
+ */
+class StockMarketSimStage2 {
+    public static void main(String[] args) {
+        System.out.println("Symulacja Giełdy - Etap 2");
+        System.out.println("========================\n");
+
+        try {
+            // Utworzenie aktywów dostępnych na rynku
+            List<Asset> marketAssets = new ArrayList<>();
+
+            // Akcje
+            Stock cdp = new Stock("CDR", "CD Projekt", 300.0);
+            Stock pkobp = new Stock("PKO", "PKO BP", 40.0);
+            Stock kghm = new Stock("KGH", "KGHM Polska Miedź", 120.0);
+
+            // Obligacje
+            Bond govBond = new Bond("POL10Y", "Obligacje Skarbowe 10-letnie", 1000.0, 0.04); // 4% rocznie
+            Bond corpBond = new Bond("CDRBOND", "Obligacje CD Projekt", 100.0, 0.06); // 6% rocznie
+
+            // Dodanie aktywów do listy rynkowej
+            marketAssets.add(cdp);
+            marketAssets.add(pkobp);
+            marketAssets.add(kghm);
+            marketAssets.add(govBond);
+            marketAssets.add(corpBond);
+
+            // Utworzenie portfela z początkową gotówką
+            Portfolio portfolio = new Portfolio(20000.0);
+
+            // Zakup aktywów do portfela
+            portfolio.addAsset(cdp, 10);      // 10 akcji CD Projekt
+            portfolio.addAsset(pkobp, 100);   // 100 akcji PKO BP
+            portfolio.addAsset(govBond, 5);   // 5 obligacji skarbowych
+
+            // Wyświetlenie początkowego stanu portfela
+            System.out.println("Stan początkowy portfela:");
+            portfolio.printPortfolio();
+
+            // Symulacja zmian cen - 10 kroków
+            DecimalFormat df = new DecimalFormat("#,##0.00");
+
+            for (int step = 1; step <= 10; step++) {
+                System.out.println("\n=== Krok symulacji " + step + " ===");
+                System.out.println("Aktualne ceny na rynku:");
+
+                // Aktualizacja cen wszystkich aktywów
+                for (Asset asset : marketAssets) {
+                    double oldPrice = asset.getCurrentPrice();
+                    asset.updatePrice();
+                    double newPrice = asset.getCurrentPrice();
+                    double change = ((newPrice - oldPrice) / oldPrice) * 100;
+
+                    System.out.println(asset.getName() + " (" + asset.getSymbol() + "): " +
+                            df.format(newPrice) + " zł (zmiana: " +
+                            df.format(change) + "%)");
+                }
+
+                // Obliczanie i wyświetlanie aktualnej wartości portfela
+                double totalValue = portfolio.calculateTotalValue();
+                System.out.println("\nAktualna wartość portfela: " + df.format(totalValue) + " zł");
+            }
+
+            // Wyświetlenie końcowego stanu portfela po symulacji
+            System.out.println("\nStan końcowy portfela po symulacji:");
+            portfolio.printPortfolio();
+
+        } catch (IllegalArgumentException e) {
+            System.out.println("Błąd: " + e.getMessage());
+        }
+    }
+}
