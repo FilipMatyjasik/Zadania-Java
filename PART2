@@ -133,7 +133,7 @@ class Portfolio {
     }
 }
 
-public class StockMarketSimStage2 {
+class StockMarketSimStage2 {
     public static void main(String[] args) {
         // Tworzenie aktywów
         List<Asset> marketAssets = new ArrayList<>();
