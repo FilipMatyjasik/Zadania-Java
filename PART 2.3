@@ -95,7 +95,7 @@ class Stock extends Asset {
     @Override
     public void updatePrice() {
         // Losowa zmiana w zakresie +/- 5%
-        double changePercent = (Math.random() - 0.5) * 0.1;
+        double changePercent = (Math.random() - 0.5) * 0.1; // Math.random losuje wartości od 0 do 1
         currentPrice *= (1.0 + changePercent);
 
         // Zapobieganie ujemnym cenom
@@ -336,13 +336,13 @@ class StockMarketSimStage2 {
                     double change = ((newPrice - oldPrice) / oldPrice) * 100;
 
                     System.out.println(asset.getName() + " (" + asset.getSymbol() + "): " +
-                            df.format(newPrice) + " zł (zmiana: " +
+                            df.format(newPrice) + " PLN (zmiana: " +
                             df.format(change) + "%)");
                 }
 
                 // Obliczanie i wyświetlanie aktualnej wartości portfela
                 double totalValue = portfolio.calculateTotalValue();
-                System.out.println("\nAktualna wartość portfela: " + df.format(totalValue) + " zł");
+                System.out.println("\nAktualna wartość portfela: " + df.format(totalValue) + " PLN");
             }
 
             // Wyświetlenie końcowego stanu portfela po symulacji
@@ -350,7 +350,7 @@ class StockMarketSimStage2 {
             portfolio.printPortfolio();
 
         } catch (IllegalArgumentException e) {
-            System.out.println("Błąd: " + e.getMessage());
+            System.out.println("Error: " + e.getMessage());
         }
     }
 }
