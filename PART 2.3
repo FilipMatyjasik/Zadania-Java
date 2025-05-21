@@ -274,7 +274,7 @@ class Portfolio {
             System.out.println("  Value: " + df.format(value) + " PLN");
         }
 
-        System.out.println("\nCash: " + df.format(cash) + " PLN");
+        System.out.println("\nCash: " + df.format(this.getCash()) + " PLN");
         System.out.println("Asset value: " + df.format(calculateAssetsValue()) + " PLN");
         System.out.println("Total value: " + df.format(calculateTotalValue()) + " PLN");
         System.out.println("-------------------");
@@ -335,9 +335,15 @@ class StockMarketSimStage2 {
                     double newPrice = asset.getCurrentPrice();
                     double change = ((newPrice - oldPrice) / oldPrice) * 100;
 
+                    String additionalInfo = ""; // info o stopie procentowej
+                    if (asset instanceof Bond) {
+                        additionalInfo = " (Interest Rate: " +
+                                df.format(((Bond) asset).getInterestRate() * 100) + "%)";
+                    }
+
                     System.out.println(asset.getName() + " (" + asset.getSymbol() + "): " +
                             df.format(newPrice) + " PLN (zmiana: " +
-                            df.format(change) + "%)");
+                            df.format(change) + "%)" + additionalInfo);
                 }
 
                 // Obliczanie i wyświetlanie aktualnej wartości portfela
