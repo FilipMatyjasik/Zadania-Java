@@ -109,7 +109,7 @@ class Stock extends Asset {
  * Klasa reprezentująca obligacje
  */
 class Bond extends Asset {
-    private double interestRate; // roczna stopa procentowa
+    private final double interestRate; // roczna stopa procentowa
 
     /**
      * Konstruktor dla obligacji
@@ -161,7 +161,7 @@ record PortfolioPosition(Asset asset, int quantity) {}
  */
 class Portfolio {
     private double cash;
-    private Map<String, PortfolioPosition> positions;
+    private final Map<String, PortfolioPosition> positions;
 
     /**
      * Konstruktor portfela
